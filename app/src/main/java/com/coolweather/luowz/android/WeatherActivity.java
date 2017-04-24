@@ -1,5 +1,6 @@
 package com.coolweather.luowz.android;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.coolweather.luowz.android.gson.Forecast;
 import com.coolweather.luowz.android.gson.Weather;
+import com.coolweather.luowz.android.service.AutoUpdateService;
 import com.coolweather.luowz.android.util.HttpUtil;
 import com.coolweather.luowz.android.util.Utility;
 
@@ -33,10 +35,11 @@ import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
 
+    public String weatherId;
+
     public DrawerLayout drawerLayout;
     private Button navButton;
     public SwipeRefreshLayout swipeRefresh;
-
     private ScrollView weatherLayout;
     private TextView titleCity;
     private TextView titleUpdateTime;
@@ -82,7 +85,9 @@ public class WeatherActivity extends AppCompatActivity {
         SharedPreferences preferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
         String weatherString = preferences.getString("weather", null);
-        final String weatherId;
+        //final String weatherId;
+        //修改了书中的这一个代码，因为从ChooseAreaFragment碎片返回的时候，城市虽然变了，
+        // 但是final变量的weatherId没有变此时再刷新，城市又会变成原来的，就会显得很奇怪
         if (weatherString != null) {
             //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -119,6 +124,8 @@ public class WeatherActivity extends AppCompatActivity {
      * 根据天气id请求城市天气信息
      */
     public void requestWeather(final String weatherId) {
+        //给weatherId重新赋值，否则会出现刷新后，城市又变成原来的了
+        this.weatherId = weatherId;
         String weatherUrl = "http://guolin.tech/api/weather?cityid=" +
                 weatherId + "&key=5f23d2dd36fe43c6b8ccce029222f661";
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
@@ -152,7 +159,7 @@ public class WeatherActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(WeatherActivity.this, "网络请求原因，获取天气信息失败",
+                        Toast.makeText(WeatherActivity.this, "网络原因，获取天气信息失败",
                                 Toast.LENGTH_SHORT).show();
                         swipeRefresh.setRefreshing(false);
                     }
@@ -233,5 +240,7 @@ public class WeatherActivity extends AppCompatActivity {
         sportText.setText(sport);
         Log.e("154行运行正常", "继续");
         weatherLayout.setVisibility(View.VISIBLE);
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
     }
 }
